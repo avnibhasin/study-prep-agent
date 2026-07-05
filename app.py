@@ -474,6 +474,59 @@ if page == "🏠 Home":
         """, unsafe_allow_html=True)
         
     st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    # Today's Recommended Study Card
+    st.markdown("### Today's Recommended Study")
+    active_deck_id = st.session_state.get("active_deck_id")
+    recommended_deck_name = st.session_state.get("active_deck_name")
+    
+    has_history = False
+    weakest_topic = None
+    weakest_accuracy = None
+    
+    if active_deck_id:
+        stats = memory.get_topic_stats(deck_id=active_deck_id)
+        if stats:
+            has_history = True
+            # Fetch weak topics (threshold=1.01 to get any topic with accuracy < 101%) ordered by weakest first
+            weak_topics_list = memory.get_weak_topics(threshold=1.01, deck_id=active_deck_id)
+            if weak_topics_list:
+                weakest_topic = weak_topics_list[0]
+                # Find its accuracy
+                for s in stats:
+                    if s["topic"] == weakest_topic:
+                        weakest_accuracy = s["accuracy"]
+                        break
+                        
+    if has_history and weakest_topic is not None:
+        st.markdown(f"""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #f59e0b; margin-bottom: 15px;">
+            <h4 style="color: #f59e0b; margin-top: 0; font-weight:700;">🎯 Daily Study Target: {recommended_deck_name}</h4>
+            <p style="color: #ffffff; font-size: 1.05rem; margin-top: 8px; margin-bottom: 8px;">
+                Based on your progress, we recommend reviewing: <b style="color: #06b6d4;">{weakest_topic}</b>
+            </p>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 0;">
+                💡 You're at <b>{weakest_accuracy}%</b> accuracy here. Focus on this concept to boost your overall subject score.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Place button under card
+        if st.button("🚀 Review Now", key="recommendation_review_btn", use_container_width=True):
+            st.session_state.bias_topic = weakest_topic
+            st.session_state.current_page = "📝 Upload & Study"
+            st.rerun()
+    else:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 15px;">
+            <h4 style="color: #94a3b8; margin-top: 0; font-weight:700;">🎯 Daily Study Target</h4>
+            <p style="color: #cbd5e1; font-size: 0.95rem; margin-top: 8px; margin-bottom: 0;">
+                Complete your first quiz to get personalized recommendations!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Your Subject Decks")
     
     # Load all decks
@@ -696,10 +749,18 @@ elif page == "📝 Upload & Study":
             
             # Show weak topics pulled from SQLite for the active deck
             weak_topics = memory.get_weak_topics(threshold=0.6, deck_id=active_deck_id)
+            bias_t = st.session_state.get("bias_topic")
+            if bias_t and bias_t not in weak_topics:
+                weak_topics.append(bias_t)
+                
+            if bias_t:
+                st.info(f"🎯 **Target study concept preset:** Biasing quiz questions to focus on: **{bias_t}**")
+                
             if weak_topics:
                 st.markdown("💡 **Your weak topics detected in this deck (<60% accuracy):**")
                 for wt in weak_topics:
-                    st.caption(f"- ⚠️ {wt}")
+                    prefix = "🎯 " if wt == bias_t else "- ⚠️ "
+                    st.caption(f"{prefix}{wt}")
                 st.info("The system will prioritize these concepts, biasing roughly 60% of the quiz questions towards them.")
             else:
                 st.info("No prior weak topics detected. Quiz questions will cover all extracted topics equally.")
@@ -1025,6 +1086,8 @@ elif page == "📝 Upload & Study":
                 st.session_state.quiz_responses = []
                 st.session_state.quiz_db_saved = False
                 st.session_state.show_truncation_warning = False
+                if "bias_topic" in st.session_state:
+                    del st.session_state.bias_topic
                 st.rerun()
 
 # ----------------- PAGE 2: Progress Dashboard -----------------
