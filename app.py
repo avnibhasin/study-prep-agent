@@ -316,11 +316,11 @@ if "filter_topic" not in st.session_state:
 main_pages = [
     "🏠 Home",
     "📝 Upload & Study",
+    "💬 Study Coach",
     "📈 Progress Dashboard",
     "🗂️ My Decks",
     "📚 Revision Sheets",
-    "🏆 Achievements",
-    "💬 Study Coach"
+    "🏆 Achievements"
 ]
 if st.session_state.current_page in main_pages:
     sidebar_index = main_pages.index(st.session_state.current_page)
@@ -328,7 +328,7 @@ else:
     if st.session_state.current_page.startswith("Feature:"):
         sidebar_index = 0
     else:
-        sidebar_index = 2
+        sidebar_index = 3
 
 with st.sidebar:
     # App Logo Icon and Title
@@ -1352,8 +1352,21 @@ elif page == "📈 Progress Dashboard":
             st.markdown("⚠️ **Weakest Topics (<70% accuracy)**")
             weak_list = summary.get("weakest_topics", [])
             if weak_list:
-                for topic in weak_list:
-                    st.error(f"**{topic}**")
+                for idx, topic in enumerate(weak_list):
+                    col_t, col_b = st.columns([3, 2])
+                    with col_t:
+                        st.error(f"**{topic}**")
+                    with col_b:
+                        if st.button("💬 Ask Coach", key=f"ask_coach_weak_{idx}", use_container_width=True):
+                            st.session_state.current_page = "💬 Study Coach"
+                            chat_key = f"coach_chat_history_{active_deck_id}"
+                            prefilled_prompt = f"Can you help me understand {topic} better?"
+                            if chat_key not in st.session_state:
+                                st.session_state[chat_key] = [
+                                    {"role": "assistant", "content": f"Hi! I'm your Study Coach for **{active_deck_name}**. Ask me any questions about your notes, or tell me to quiz you on key concepts!"}
+                                ]
+                            st.session_state[chat_key].append({"role": "user", "content": prefilled_prompt})
+                            st.rerun()
             else:
                 st.caption("No weak topics logged yet.")
                 
@@ -1893,32 +1906,25 @@ elif page == "💬 Study Coach":
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             
+    # Check if last message is from user (which triggers coach generation loop)
+    if st.session_state[chat_key][-1]["role"] == "user":
+        user_msg_text = st.session_state[chat_key][-1]["content"]
+        with st.chat_message("assistant"):
+            with st.spinner("Coach is thinking..."):
+                try:
+                    coach_response = agent.chat_with_coach(
+                        user_message=user_msg_text,
+                        deck_context=active_deck["source_text"],
+                        chat_history=st.session_state[chat_key][:-1]
+                    )
+                except Exception as e:
+                    coach_response = f"Sorry, I had trouble thinking of a response: {e}"
+            st.markdown(coach_response)
+        st.session_state[chat_key].append({"role": "assistant", "content": coach_response})
+        st.rerun()
+            
     # Chat input for user message
     user_input = st.chat_input(f"Ask your coach about {active_deck_name}...")
-    
     if user_input:
-        # Display user message immediately
-        with st.chat_message("user"):
-            st.markdown(user_input)
-            
-        # Append user message to history
         st.session_state[chat_key].append({"role": "user", "content": user_input})
-        
-        # Call chat_with_coach with spinner
-        with st.spinner("Coach is thinking..."):
-            try:
-                coach_response = agent.chat_with_coach(
-                    user_message=user_input,
-                    deck_context=active_deck["source_text"],
-                    chat_history=st.session_state[chat_key][:-1] # Pass history before this last user message
-                )
-            except Exception as e:
-                coach_response = f"Sorry, I had trouble thinking of a response: {e}"
-                
-        # Display coach response
-        with st.chat_message("assistant"):
-            st.markdown(coach_response)
-            
-        # Append coach response to history
-        st.session_state[chat_key].append({"role": "assistant", "content": coach_response})
         st.rerun()
