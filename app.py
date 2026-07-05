@@ -1438,12 +1438,17 @@ elif page == "📈 Progress Dashboard":
                             name=label
                         ))
                 
+                x_min = float(df_map["x"].min()) - 1.0
+                x_max = float(df_map["x"].max()) + 1.0
+                y_min = float(df_map["y"].min()) - 1.0
+                y_max = float(df_map["y"].max()) + 1.0
+
                 fig_map.update_layout(
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[x_min, x_max]),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[y_min, y_max]),
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=10, r=10, t=10, b=10),
+                    margin=dict(l=20, r=20, t=10, b=20),
                     height=280,
                     hovermode="closest",
                     clickmode="event+select",
