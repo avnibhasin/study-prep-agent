@@ -319,7 +319,8 @@ main_pages = [
     "📈 Progress Dashboard",
     "🗂️ My Decks",
     "📚 Revision Sheets",
-    "🏆 Achievements"
+    "🏆 Achievements",
+    "💬 Study Coach"
 ]
 if st.session_state.current_page in main_pages:
     sidebar_index = main_pages.index(st.session_state.current_page)
@@ -1849,3 +1850,75 @@ elif page == "🏆 Achievements":
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# ----------------- PAGE: Study Coach -----------------
+elif page == "💬 Study Coach":
+    st.markdown('<div class="main-header">💬 AI Study Coach</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">Chat with your AI Coach to ask questions, clarify confusing concepts, or get quizzed on your notes.</div>', unsafe_allow_html=True)
+    
+    # Check if a deck is active
+    active_deck_id = st.session_state.get("active_deck_id")
+    active_deck_name = st.session_state.get("active_deck_name")
+    
+    if not active_deck_id:
+        st.warning("Please select or create a subject deck first to chat with your Study Coach.")
+        st.stop()
+        
+    # Get active deck details
+    active_deck = memory.get_deck(active_deck_id)
+    if not active_deck or not active_deck.get("source_text"):
+        st.warning("No notes found for the active deck. Please go to the Upload & Study page to add notes first.")
+        st.stop()
+        
+    st.info(f"📚 **Coach context preloaded with deck:** `{active_deck_name}`")
+    
+    # Initialize chat history key specific to active deck
+    chat_key = f"coach_chat_history_{active_deck_id}"
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = [
+            {"role": "assistant", "content": f"Hi! I'm your Study Coach for **{active_deck_name}**. Ask me any questions about your notes, or tell me to quiz you on key concepts!"}
+        ]
+        
+    # Clear conversation button in a neat column alignment
+    col_chat1, col_chat2 = st.columns([8, 2])
+    with col_chat2:
+        if st.button("Clear Chat 🗑️", use_container_width=True):
+            st.session_state[chat_key] = [
+                {"role": "assistant", "content": f"Hi! I'm your Study Coach for **{active_deck_name}**. Ask me any questions about your notes, or tell me to quiz you on key concepts!"}
+            ]
+            st.rerun()
+            
+    # Render chat messages from history
+    for msg in st.session_state[chat_key]:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+            
+    # Chat input for user message
+    user_input = st.chat_input(f"Ask your coach about {active_deck_name}...")
+    
+    if user_input:
+        # Display user message immediately
+        with st.chat_message("user"):
+            st.markdown(user_input)
+            
+        # Append user message to history
+        st.session_state[chat_key].append({"role": "user", "content": user_input})
+        
+        # Call chat_with_coach with spinner
+        with st.spinner("Coach is thinking..."):
+            try:
+                coach_response = agent.chat_with_coach(
+                    user_message=user_input,
+                    deck_context=active_deck["source_text"],
+                    chat_history=st.session_state[chat_key][:-1] # Pass history before this last user message
+                )
+            except Exception as e:
+                coach_response = f"Sorry, I had trouble thinking of a response: {e}"
+                
+        # Display coach response
+        with st.chat_message("assistant"):
+            st.markdown(coach_response)
+            
+        # Append coach response to history
+        st.session_state[chat_key].append({"role": "assistant", "content": coach_response})
+        st.rerun()
