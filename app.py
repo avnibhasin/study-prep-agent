@@ -1408,6 +1408,24 @@ elif page == "📈 Progress Dashboard":
                 
                 df_map = pd.DataFrame(rows_data)
                 
+                def format_map_label(topic_name: str) -> str:
+                    if not topic_name:
+                        return ""
+                    if len(topic_name) <= 12:
+                        return topic_name
+                    for sep in [" ", "/", "&"]:
+                        if sep in topic_name:
+                            parts = topic_name.split(sep, 1)
+                            p1, p2 = parts[0].strip(), parts[1].strip()
+                            if len(p1) <= 12 and len(p2) <= 12:
+                                if sep == "&":
+                                    return f"{p1} &<br>{p2}"
+                                elif sep == "/":
+                                    return f"{p1}/<br>{p2}"
+                                else:
+                                    return f"{p1}<br>{p2}"
+                    return topic_name[:9] + "..."
+
                 import plotly.graph_objects as go
                 fig_map = go.Figure()
                 
@@ -1418,13 +1436,14 @@ elif page == "📈 Progress Dashboard":
                 ]
                 
                 for cat, label, color_code in categories:
-                    df_cat = df_map[df_map["color_cat"] == cat]
+                    df_cat = df_map[df_map["color_cat"] == cat].copy()
                     if not df_cat.empty:
+                        display_labels = df_cat["topic"].apply(format_map_label)
                         fig_map.add_trace(go.Scatter(
                             x=df_cat["x"],
                             y=df_cat["y"],
                             mode="markers+text",
-                            text=df_cat["topic"],
+                            text=display_labels,
                             textposition="bottom center",
                             textfont=dict(color='#ffffff', size=11, family="Outfit, sans-serif"),
                             marker=dict(
