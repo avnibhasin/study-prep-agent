@@ -502,3 +502,49 @@ def critique_explanation(question: str, correct_answer: str, draft_explanation: 
     except Exception as e:
         print(f"Error critiquing explanation: {e}")
         return draft_explanation
+
+# ----------------- AI STUDY COACH -----------------
+SYSTEM_PROMPT_COACH = (
+    "You are a helpful, encouraging, and structured study coach. "
+    "Your task is to help the user study and understand the material in their deck. "
+    "Here are your rules:\n"
+    "1. Stick to explaining, clarifying, and quizzing on the provided deck context.\n"
+    "2. Keep your answers clear, educational, and concise.\n"
+    "3. If the user asks something unrelated to the deck context or study guidance, "
+    "politely redirect them back to the topic of the study deck."
+)
+
+def chat_with_coach(user_message: str, deck_context: str, chat_history: list) -> str:
+    """Chats with the AI study coach, scoped to the active deck context and recent history."""
+    if not api_key:
+        return "I am ready to help you study! Set your Gemini API Key to enable AI coaching."
+
+    system_instruction = (
+        f"{SYSTEM_PROMPT_COACH}\n\n"
+        "Here is the deck context material you must use:\n"
+        f"--- DECK CONTENT ---\n{deck_context}\n--------------------"
+    )
+    
+    history_str = ""
+    # Keep last 10 messages for memory within the session
+    recent_history = chat_history[-10:] if chat_history else []
+    for msg in recent_history:
+        role = "User" if msg["role"] == "user" else "Coach"
+        history_str += f"{role}: {msg['content']}\n"
+        
+    prompt = f"{history_str}User: {user_message}\nCoach:"
+    
+    model = genai.GenerativeModel(
+        model_name='gemini-2.0-flash',
+        system_instruction=system_instruction
+    )
+    
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.7}
+        )
+        return response.text.strip()
+    except Exception as e:
+        print(f"Error in chat_with_coach: {e}")
+        return "I encountered an error trying to connect to my AI coaching service. Let's try chatting again shortly!"
