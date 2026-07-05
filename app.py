@@ -337,16 +337,8 @@ with st.sidebar:
         st.image("study_agent_logo.png", use_container_width=True)
     with col_title:
         st.markdown('<div class="sidebar-title" style="margin-top: 10px;">Study Prep Agent</div>', unsafe_allow_html=True)
-    
-    # Check Gemini API Key setting
-    api_key_status = "Configured" if agent.api_key else "Missing"
-    if api_key_status == "Configured":
-        st.success("🟢 Gemini API: Connected")
-    else:
-        st.warning("🔴 Gemini API Key Missing")
-        st.info("Please set the `GEMINI_API_KEY` in the `.env` file in the project folder to enable AI features.")
         
-    st.markdown("---")
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     # Subject Deck Switcher in Sidebar
     st.markdown("📂 **Subject Deck**")
@@ -388,7 +380,7 @@ with st.sidebar:
         st.session_state.active_deck_id = None
         st.session_state.active_deck_name = None
         
-    st.markdown("---")
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     # Sidebar navigation binding (with Emoji icons)
     page_sel = st.radio(
@@ -404,35 +396,105 @@ with st.sidebar:
         if not (is_feature_subpage or is_topic_subpage):
             st.session_state.current_page = page_sel
             st.session_state.filter_topic = None
-            
-    st.markdown("---")
-    st.markdown("<small>Created by Antigravity AI</small>", unsafe_allow_html=True)
 
 # Use current_page state for layout rendering
 page = st.session_state.current_page
 if page == "🏠 Home":
-    # Hero Section
-    st.markdown("""
-    <div class="hero-container">
-        <div class="hero-title">Study Prep Agent</div>
-        <div class="hero-tagline">"The study buddy that remembers what you don't know"</div>
-        <div class="hero-desc">
-            An intelligent, adaptive exam preparation assistant designed to optimize your learning. 
-            Simply upload your study materials, and let our generative AI construct custom multiple-choice 
-            and short-answer practice sessions, giving you instant conceptual explanations 
-            while tracking your progress to automatically reinforce your weaker areas.
+    # Fetch real stats from SQLite
+    all_decks = memory.get_all_decks()
+    conn = memory.get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM quiz_history")
+        total_questions_logged = cursor.fetchone()[0]
+    except Exception:
+        total_questions_logged = 0
+        
+    try:
+        cursor.execute("""
+            SELECT topic, CAST(SUM(is_correct) AS FLOAT) / COUNT(*) as acc
+            FROM quiz_history
+            GROUP BY topic
+            HAVING acc >= 0.75 AND COUNT(*) >= 3
+        """)
+        mastered_topics_count = len(cursor.fetchall())
+    except Exception:
+        mastered_topics_count = 0
+    conn.close()
+
+    # Hero Section Grid (SaaS Polished Columns Layout)
+    col_hero_left, col_hero_right = st.columns([6, 5])
+    with col_hero_left:
+        st.markdown("""
+        <div style="padding-top: 10px; padding-bottom: 10px;">
+            <h1 class="main-header" style="font-size: 3.4rem; line-height: 1.1; margin-bottom: 15px; text-align: left;">Study Prep Agent</h1>
+            <div class="hero-tagline" style="font-size: 1.25rem; color: #38bdf8; font-weight: 600; margin-bottom: 20px; text-align: left;">
+                "The study buddy that remembers what you don't know"
+            </div>
+            <p style="color: #cbd5e1; font-size: 1.02rem; line-height: 1.65; margin-bottom: 35px; text-align: left;">
+                An intelligent, adaptive exam preparation assistant designed to optimize your learning. 
+                Simply upload your study materials, and let our generative AI construct custom multiple-choice 
+                and short-answer practice sessions, giving you instant conceptual explanations 
+                while tracking your progress to automatically reinforce your weaker areas.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Start Studying CTA Button
+        st.markdown('<div class="cta-button" style="text-align: left; margin-bottom: 25px;">', unsafe_allow_html=True)
+        st.button("Start Studying ➔", on_click=go_to_study, key="cta_start_studying_btn")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    with col_hero_right:
+        # Illustrative premium live preview card mockup representing a study session
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 24px; border-radius: 16px; border: 1.5px solid #06b6d4; box-shadow: 0 12px 30px rgba(6, 182, 212, 0.15); margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="background-color: #083344; color: #22d3ee; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #0e7490; text-transform: uppercase;">GEOGRAPHY</span>
+                <span style="background-color: #7f1d1d; color: #f87171; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #b91c1c;">HARD</span>
+            </div>
+            <h4 style="color: #ffffff; font-size: 1rem; font-weight: 750; margin-top: 5px; margin-bottom: 15px; line-height: 1.45;">
+                Which of the following describes the zone where two crustal plates slip past each other horizontally?
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="background-color: #1e293b; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between;">
+                    <span>A. Convergent Boundary</span>
+                </div>
+                <div style="background-color: #064e3b; padding: 10px 14px; border-radius: 8px; border: 1px solid #059669; font-size: 0.85rem; color: #34d399; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                    <span>B. Transform Fault Boundary</span>
+                    <span style="font-size: 0.75rem; background-color: #047857; color: #ffffff; padding: 2px 6px; border-radius: 4px;">🟢 Selected</span>
+                </div>
+                <div style="background-color: #1e293b; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; font-size: 0.85rem; color: #94a3b8;">
+                    C. Divergent Rift Zone
+                </div>
+            </div>
+            <div style="margin-top: 15px; background-color: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; font-size: 0.82rem; line-height: 1.4; color: #cbd5e1;">
+                💡 <b>Coach:</b> Convection cells force lateral shearing horizontally along transform faults.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Real Statistics Strip
+    st.markdown(f"""
+    <div style="background-color: #101625; padding: 15px 30px; border-radius: 12px; border: 1px solid #1e293b; display: flex; justify-content: space-around; align-items: center; margin-top: 25px; margin-bottom: 35px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);">
+        <div style="text-align: center; flex: 1;">
+            <div style="color: #06b6d4; font-size: 1.8rem; font-weight: 800;">{len(all_decks)}</div>
+            <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Decks Created</div>
+        </div>
+        <div style="border-left: 1px solid #1e293b; height: 35px;"></div>
+        <div style="text-align: center; flex: 1;">
+            <div style="color: #3b82f6; font-size: 1.8rem; font-weight: 800;">{total_questions_logged}</div>
+            <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Questions Answered</div>
+        </div>
+        <div style="border-left: 1px solid #1e293b; height: 35px;"></div>
+        <div style="text-align: center; flex: 1;">
+            <div style="color: #10b981; font-size: 1.8rem; font-weight: 800;">{mastered_topics_count}</div>
+            <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Concepts Mastered</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Start Studying button call-to-action
-    col_btn_l, col_btn_c, col_btn_r = st.columns([1, 1, 1])
-    with col_btn_c:
-        st.markdown('<div class="cta-button">', unsafe_allow_html=True)
-        st.button("Start Studying ➔", on_click=go_to_study)
-        st.markdown('</div>', unsafe_allow_html=True)
         
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("### How It Works")
     
     # Steps columns
@@ -474,7 +536,7 @@ if page == "🏠 Home":
         </div>
         """, unsafe_allow_html=True)
         
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     
     # Today's Recommended Study Card
     st.markdown("### Today's Recommended Study")
@@ -527,7 +589,7 @@ if page == "🏠 Home":
         </div>
         """, unsafe_allow_html=True)
         
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("### Your Subject Decks")
     
     # Load all decks
@@ -623,7 +685,7 @@ if page == "🏠 Home":
                         except Exception as e:
                             st.error(f"Failed to create deck (name might already exist): {e}")
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("### Key Features")
     
     # Features Grid (2x2)
