@@ -495,6 +495,98 @@ if page == "🏠 Home":
     """, unsafe_allow_html=True)
         
     st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
+    
+    # About the Project Section
+    st.markdown("### About the Project")
+    about_col_left, about_col_right = st.columns([5, 5])
+    with about_col_left:
+        st.markdown("""
+        <div style="background-color: #0e1320; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; height: 100%;">
+            <h4 style="color: #06b6d4; margin-top:0; font-weight:700;">🧠 Adaptive Learning Loop</h4>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;">
+                Study Prep Agent is powered by an active recall methodology. Instead of passive reading, the system forces 
+                your brain to retrieve information through dynamic quizzes. Performance logs are tracked using an integrated 
+                SQLite schema, feeding an adaptive algorithm that automatically weights weaker topics in subsequent practice sets.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    with about_col_right:
+        st.markdown("""
+        <div style="background-color: #0e1320; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; height: 100%;">
+            <h4 style="color: #3b82f6; margin-top:0; font-weight:700;">🤖 Multi-Agent Critic Framework</h4>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;">
+                To ensure high quality, the system leverages a multi-agent generation loop. 
+                First, a generator drafts quiz questions and initial response critiques. 
+                A secondary referee agent analyzes the output, assessing explanation correctness, 
+                clarity, and potential edge cases. A final refiner synthesizes the notes, producing precise feedback.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
+    
+    # Core Application Hubs Section
+    st.markdown("### Core Application Hubs")
+    st.markdown("<p style='color: #94a3b8; font-size: 0.95rem; margin-top: -10px; margin-bottom: 25px;'>Navigate directly to any section of the study agent below to start learning:</p>", unsafe_allow_html=True)
+    
+    nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
+    with nav_col1:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; text-align: center; min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="font-size: 2rem; margin-bottom: 5px;">📝</div>
+                <h4 style="color: #ffffff; font-size: 1.05rem; margin: 0; font-weight:700;">Upload & Quiz</h4>
+                <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; line-height: 1.3;">Upload notes, generate custom adaptive quizzes, and practice concepts.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Open Quizzes ➔", key="nav_to_quizzes", use_container_width=True):
+            st.session_state.current_page = "📝 Upload & Study"
+            st.rerun()
+            
+    with nav_col2:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; text-align: center; min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="font-size: 2rem; margin-bottom: 5px;">💬</div>
+                <h4 style="color: #ffffff; font-size: 1.05rem; margin: 0; font-weight:700;">AI Study Coach</h4>
+                <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; line-height: 1.3;">Discuss your notes, ask questions, or request quick concept drills.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Start Chatting ➔", key="nav_to_coach", use_container_width=True):
+            st.session_state.current_page = "💬 Study Coach"
+            st.rerun()
+            
+    with nav_col3:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; text-align: center; min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="font-size: 2rem; margin-bottom: 5px;">📈</div>
+                <h4 style="color: #ffffff; font-size: 1.05rem; margin: 0; font-weight:700;">Progress Dashboard</h4>
+                <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; line-height: 1.3;">Track topic accuracies, streaks, and view the Mastery Map.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("View Progress ➔", key="nav_to_dashboard", use_container_width=True):
+            st.session_state.current_page = "📈 Progress Dashboard"
+            st.rerun()
+            
+    with nav_col4:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; text-align: center; min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="font-size: 2rem; margin-bottom: 5px;">📚</div>
+                <h4 style="color: #ffffff; font-size: 1.05rem; margin: 0; font-weight:700;">Revision Sheets</h4>
+                <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 8px; line-height: 1.3;">Generate sheets covering just concepts under 70% accuracy.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Open Sheets ➔", key="nav_to_sheets", use_container_width=True):
+            st.session_state.current_page = "📚 Revision Sheets"
+            st.rerun()
+            
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("### How It Works")
     
     # Steps columns
