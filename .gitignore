@@ -1,0 +1,22 @@
+# Python environment and build
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Streamlit config and secrets
+.streamlit/secrets.toml
+.env
+
+# Databases and journals
+*.db
+*.db-journal
+
+# Locally generated assets & reports
+*.png
+*.jpg
+*.jpeg
+revision_sheet.md
