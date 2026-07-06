@@ -1374,15 +1374,17 @@ elif page == "📈 Progress Dashboard":
             st.subheader("Topic Mastery Map")
             topic_data = memory.get_topic_stats(deck_id=st.session_state.get("active_deck_id"))
             if topic_data:
-                # Build grid layout
+                # Build grid layout: exactly 4 columns per line
                 import math
                 num_topics = len(topic_data)
-                cols = math.ceil(math.sqrt(num_topics)) if num_topics > 0 else 1
+                cols = 4
+                num_rows = math.ceil(num_topics / 4) if num_topics > 0 else 1
                 
                 rows_data = []
                 for idx, t in enumerate(topic_data):
-                    x = idx % cols
-                    y = idx // cols
+                    x = idx % 4
+                    # Row 0 at the top, row 1 below it, etc.
+                    y = -(idx // 4)
                     
                     acc = t["accuracy"]
                     if acc < 40.0:
@@ -1403,7 +1405,7 @@ elif page == "📈 Progress Dashboard":
                         "total_questions": t["total"],
                         "color_cat": color,
                         "hex_color": hex_color,
-                        "size": 25 + min(t["total"] * 6, 50)
+                        "size": 28  # Equal size and dimensions for all circles
                     })
                 
                 df_map = pd.DataFrame(rows_data)
@@ -1458,18 +1460,19 @@ elif page == "📈 Progress Dashboard":
                             name=label
                         ))
                 
-                x_min = float(df_map["x"].min()) - 1.5
-                x_max = float(df_map["x"].max()) + 1.5
-                y_min = float(df_map["y"].min()) - 1.0
-                y_max = float(df_map["y"].max()) + 1.0
+                x_min = -0.6
+                x_max = 3.6
+                y_min = -(num_rows - 1) - 0.7
+                y_max = 0.7
+                plot_height = max(180, 80 * num_rows + 40)
 
                 fig_map.update_layout(
                     xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[x_min, x_max]),
                     yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[y_min, y_max]),
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=80, r=80, t=10, b=20),
-                    height=280,
+                    margin=dict(l=50, r=50, t=10, b=20),
+                    height=plot_height,
                     hovermode="closest",
                     clickmode="event+select",
                     showlegend=True,
