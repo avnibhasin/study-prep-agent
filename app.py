@@ -317,7 +317,7 @@ main_pages = [
     "🏠 Home",
     "📝 Upload & Study",
     "💬 Study Coach",
-    "📋 Prep Planner",
+    "📅 Prep Planner",
     "📈 Progress Dashboard",
     "🗂️ My Decks",
     "📚 Revision Sheets",
@@ -781,36 +781,41 @@ if page == "🏠 Home":
     st.markdown("<hr style='border: 0; border-top: 1px solid #1e293b; margin: 30px 0;'>", unsafe_allow_html=True)
     st.markdown("### Key Features")
     
-    # Features Grid (2x2)
-    feat_col1, feat_col2 = st.columns(2)
+    # Features Grid (5 in one line)
+    feat_cols = st.columns(5)
     
-    with feat_col1:
+    with feat_cols[0]:
         st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
-        if st.button("🎯 Adaptive Difficulty\n\nLearn how quizzes automatically scale up or down based on your performance streaks and prioritize your weak areas.", key="feat_adapt"):
+        if st.button("🎯 Adaptive Difficulty\n\nLearn how quizzes automatically scale based on performance streaks and prioritize weak areas.", key="feat_adapt"):
             st.session_state.current_page = "Feature: Adaptive Difficulty"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        
+    with feat_cols[1]:
         st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
-        if st.button("🤖 Multi-Agent Review\n\nRead about the collaborative critique and explanation refiner agent that helps clarify difficult concepts.", key="feat_multi"):
-            st.session_state.current_page = "Feature: Multi-Agent Review"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with feat_col2:
-        st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
-        if st.button("💾 Spaced Repetition Memory\n\nSee how your quiz attempts are recorded in SQLite to track long-term retention and topic progression.", key="feat_spaced"):
+        if st.button("💾 Spaced Repetition\n\nSee how attempts are recorded in SQLite to track long-term retention and progress.", key="feat_spaced"):
             st.session_state.current_page = "Feature: Spaced Repetition Memory"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        
+    with feat_cols[2]:
         st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
-        if st.button("📋 Revision Sheets\n\nGenerate customized summaries covering just your weak concepts with key points and common mistakes.", key="feat_sheet"):
+        if st.button("🤖 Multi-Agent Review\n\nRead about the collaborative critique refiner that refines explanations.", key="feat_multi"):
+            st.session_state.current_page = "Feature: Multi-Agent Review"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    with feat_cols[3]:
+        st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
+        if st.button("📋 Revision Sheets\n\nGenerate customized summaries covering just your weak concepts with key points.", key="feat_sheet"):
             st.session_state.current_page = "Feature: Revision Sheets"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with feat_cols[4]:
+        st.markdown('<div class="feature-card-btn">', unsafe_allow_html=True)
+        if st.button("📅 Prep Planner\n\nCreate a daily schedule and chat with a specialized coach for any study goal.", key="feat_planner"):
+            st.session_state.current_page = "📅 Prep Planner"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -2059,8 +2064,8 @@ elif page == "🏆 Achievements":
         """, unsafe_allow_html=True)
 
 # ----------------- PAGE: Prep Planner -----------------
-elif page == "📋 Prep Planner":
-    st.markdown('<div class="main-header">📋 AI Prep Planner</div>', unsafe_allow_html=True)
+elif page == "📅 Prep Planner":
+    st.markdown('<div class="main-header">📅 AI Prep Planner</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Create a customized day-by-day preparation schedule and chat with a specialized prep coach.</div>', unsafe_allow_html=True)
 
     import json
