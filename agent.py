@@ -548,3 +548,137 @@ def chat_with_coach(user_message: str, deck_context: str, chat_history: list) ->
     except Exception as e:
         print(f"Error in chat_with_coach: {e}")
         return "I encountered an error trying to connect to my AI coaching service. Let's try chatting again shortly!"
+
+# ----------------- AI PREP COACH & PLANS -----------------
+SYSTEM_PROMPT_PREP_PLAN = (
+    "You are an expert study preparation coach. Your job is to create a structured preparation plan based on the user's goal "
+    "and the number of days available.\n"
+    "Your output must be a valid JSON object with the following exact keys:\n"
+    "- 'topic_breakdown': (list of strings) key areas/topics to cover, ordered by priority\n"
+    "- 'daily_plan': (list of objects) one object per available day, containing:\n"
+    "    - 'day': (integer) the day number (starting from 1)\n"
+    "    - 'title': (string) short title/focus of the day\n"
+    "    - 'focus_items': (list of 2-4 strings) specific focus/study bullet items for that day\n"
+    "- 'key_tips': (list of 2-3 strings) strategic tips specific to this type of preparation.\n\n"
+    "Do not include any markdown styling, code block backticks (like ```json ... ```), explanation, or HTML. "
+    "Output must be a raw JSON object."
+)
+
+def validate_prep_plan_json(plan_data) -> bool:
+    """Validates the structure of the preparation plan returned by the model."""
+    if not isinstance(plan_data, dict):
+        return False
+    for key in ["topic_breakdown", "daily_plan", "key_tips"]:
+        if key not in plan_data:
+            return False
+    if not isinstance(plan_data["topic_breakdown"], list) or not all(isinstance(x, str) for x in plan_data["topic_breakdown"]):
+        return False
+    if not isinstance(plan_data["key_tips"], list) or not all(isinstance(x, str) for x in plan_data["key_tips"]):
+        return False
+    if not isinstance(plan_data["daily_plan"], list):
+        return False
+    for item in plan_data["daily_plan"]:
+        if not isinstance(item, dict):
+            return False
+        for key in ["day", "title", "focus_items"]:
+            if key not in item:
+                return False
+        if not isinstance(item["focus_items"], list) or not all(isinstance(x, str) for x in item["focus_items"]):
+            return False
+    return True
+
+def _fallback_prep_plan(goal_description: str, days_available: int) -> dict:
+    """Fallback preparation plan generator if Gemini fails."""
+    goal_lower = goal_description.lower()
+    if "interview" in goal_lower:
+        topic_breakdown = ["Core Technical Concepts", "Coding Challenges & Algorithms", "System Design Basics", "Behavioral Preparation"]
+        key_tips = [
+            "Practice explaining your thought process out loud while coding.",
+            "Review your resume and prepare 2-3 stories using the STAR method.",
+            "Do timed practice coding questions on a whiteboard or clean editor."
+        ]
+        default_topics = [
+            ("Resume & Projects Review", ["Go over previous projects in detail", "Identify key technical challenges you faced", "Prepare STAR answers"]),
+            ("Algorithm Practice", ["Solve 2-3 medium coding problems", "Focus on arrays, strings, and hash tables", "Practice complexity analysis"]),
+            ("System Design & Architecture", ["Review core architectural concepts", "Study database choices and scalability", "Practice design mock questions"]),
+            ("Behavioral & Soft Skills", ["Rehearse answers to standard behavioral questions", "Write down questions to ask the interviewer", "Do a mock interview run"]),
+            ("Final Polish & Review", ["Review cheat sheets and syntax", "Get plenty of rest before the session", "Set up your interview environment"])
+        ]
+    else:
+        topic_breakdown = ["Core Material & Concepts", "Active Recall Quizzing", "Mock Exams & Timed Practice", "Weak Areas Review"]
+        key_tips = [
+            "Use active recall and spaced repetition instead of passive rereading.",
+            "Practice explaining difficult concepts simply to test your understanding.",
+            "Do timed practice questions to build exam endurance."
+        ]
+        default_topics = [
+            ("Initial Material Review", ["Skim through all core lectures/chapters", "Create a list of key definitions and terms", "Identify areas you don't fully understand"]),
+            ("Deep Dive & Practice", ["Solve practice problems for difficult concepts", "Write summary notes or concept maps", "Create self-quiz flashcards"]),
+            ("Active Recall Quiz", ["Take practice tests under simulated exam conditions", "Review errors and write down clarifications", "Study with flashcards"]),
+            ("Weak Areas Review", ["Focus specifically on concepts you got wrong", "Seek clarifications on remaining questions", "Rewrite explanations in your own words"]),
+            ("Final Summary Check", ["Review the syllabus and checklists", "Go over key tips and high-priority definitions", "Rest well before the exam day"])
+        ]
+
+    daily_plan = []
+    for day in range(1, days_available + 1):
+        idx = (day - 1) % len(default_topics)
+        title, focus = default_topics[idx]
+        daily_plan.append({
+            "day": day,
+            "title": f"Day {day}: {title}",
+            "focus_items": focus
+        })
+        
+    return {
+        "topic_breakdown": topic_breakdown,
+        "daily_plan": daily_plan,
+        "key_tips": key_tips
+    }
+
+def generate_prep_plan(goal_description: str, days_available: int) -> dict:
+    """
+    Generates a structured preparation plan using Gemini, establishing it as an expert prep coach.
+    Falls back to a local structured template if the API is unavailable or rate-limited.
+    """
+    try:
+        days_available = max(1, int(days_available))
+    except Exception:
+        days_available = 5
+
+    if api_key:
+        model = genai.GenerativeModel(
+            model_name='gemini-2.0-flash',
+            system_instruction=SYSTEM_PROMPT_PREP_PLAN
+        )
+        
+        prompt = (
+            f"Generate a customized preparation plan for this goal: '{goal_description}'\n"
+            f"Days available: {days_available} days.\n"
+            f"Please ensure the 'daily_plan' array contains exactly {days_available} objects, one for each day."
+        )
+        
+        for attempt in range(2):
+            try:
+                response = model.generate_content(
+                    prompt,
+                    generation_config={"temperature": 0.5}
+                )
+                cleaned = clean_json_string(response.text)
+                try:
+                    plan_data = json.loads(cleaned)
+                except json.JSONDecodeError:
+                    import re
+                    match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+                    if match:
+                        plan_data = json.loads(match.group(0))
+                    else:
+                        raise ValueError("No JSON object found")
+                
+                if validate_prep_plan_json(plan_data):
+                    plan_data["daily_plan"] = plan_data["daily_plan"][:days_available]
+                    return plan_data
+            except Exception as e:
+                print(f"[WARN] Prep plan generation attempt {attempt+1} failed: {e}")
+                
+    print("[INFO] Using local fallback prep plan generation.")
+    return _fallback_prep_plan(goal_description, days_available)
