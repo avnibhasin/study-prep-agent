@@ -1563,7 +1563,18 @@ elif page == "📈 Progress Dashboard":
                 
             if filtered_history:
                 df_history = pd.DataFrame(filtered_history)
-                df_history["Date & Time"] = pd.to_datetime(df_history["timestamp"]).dt.strftime("%Y-%m-%d %H:%M")
+                def format_timestamp(ts):
+                    if pd.isnull(ts) or ts is None:
+                        return "None"
+                    try:
+                        dt = pd.to_datetime(ts)
+                        if pd.isnull(dt):
+                            return "None"
+                        day = str(dt.day)
+                        return dt.strftime(f"%b {day}, %Y - %I:%M %p")
+                    except Exception:
+                        return "None"
+                df_history["Date & Time"] = df_history["timestamp"].apply(format_timestamp)
                 df_history["Result"] = df_history["is_correct"].apply(lambda x: "🟢 Correct" if x else "🔴 Incorrect")
                 
                 st.dataframe(

@@ -58,13 +58,15 @@ def init_db(db_path=DB_FILE):
 
 def log_answer(topic: str, is_correct: bool, db_path=DB_FILE, deck_id: int = None):
     """Logs an individual question's answer result into quiz_history, optionally linked to a deck."""
+    import datetime
     conn = get_connection(db_path)
     cursor = conn.cursor()
     try:
         val = 1 if is_correct else 0
+        timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute(
-            "INSERT INTO quiz_history (topic, is_correct, deck_id) VALUES (?, ?, ?)",
-            (topic, val, deck_id)
+            "INSERT INTO quiz_history (topic, is_correct, deck_id, timestamp) VALUES (?, ?, ?, ?)",
+            (topic, val, deck_id, timestamp_str)
         )
         conn.commit()
     except Exception as e:
