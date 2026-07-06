@@ -1439,13 +1439,14 @@ elif page == "📈 Progress Dashboard":
                     df_cat = df_map[df_map["color_cat"] == cat].copy()
                     if not df_cat.empty:
                         display_labels = df_cat["topic"].apply(format_map_label)
+                        font_sizes = [9 if len(str(lbl).replace("<br>", "")) > 10 else 11 for lbl in display_labels]
                         fig_map.add_trace(go.Scatter(
                             x=df_cat["x"],
                             y=df_cat["y"],
                             mode="markers+text",
                             text=display_labels,
                             textposition="bottom center",
-                            textfont=dict(color='#ffffff', size=11, family="Outfit, sans-serif"),
+                            textfont=dict(color='#ffffff', size=font_sizes, family="Outfit, sans-serif"),
                             marker=dict(
                                 size=df_cat["size"],
                                 color=color_code,
@@ -1457,8 +1458,8 @@ elif page == "📈 Progress Dashboard":
                             name=label
                         ))
                 
-                x_min = float(df_map["x"].min()) - 1.0
-                x_max = float(df_map["x"].max()) + 1.0
+                x_min = float(df_map["x"].min()) - 1.5
+                x_max = float(df_map["x"].max()) + 1.5
                 y_min = float(df_map["y"].min()) - 1.0
                 y_max = float(df_map["y"].max()) + 1.0
 
@@ -1467,7 +1468,7 @@ elif page == "📈 Progress Dashboard":
                     yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[y_min, y_max]),
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=20, r=20, t=10, b=20),
+                    margin=dict(l=80, r=80, t=10, b=20),
                     height=280,
                     hovermode="closest",
                     clickmode="event+select",
