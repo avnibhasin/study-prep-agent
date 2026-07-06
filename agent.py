@@ -514,10 +514,49 @@ SYSTEM_PROMPT_COACH = (
     "politely redirect them back to the topic of the study deck."
 )
 
+def _local_fallback_chat_reply(user_message: str, context_text: str) -> str:
+    """Generates a helpful fallback response using local keyword search on the preloaded context."""
+    user_lower = user_message.lower()
+    
+    # 1. Split context into paragraphs/blocks
+    blocks = [b.strip() for b in context_text.split('\n') if b.strip()]
+    
+    # 2. Score blocks based on term matches
+    words = [w for w in user_lower.split() if len(w) > 3]
+    if not words:
+        words = [user_lower]
+        
+    best_blocks = []
+    for block in blocks:
+        block_lower = block.lower()
+        score = sum(1 for w in words if w in block_lower)
+        if score > 0:
+            best_blocks.append((score, block))
+            
+    # Sort by descending score
+    best_blocks.sort(key=lambda x: x[0], reverse=True)
+    
+    if best_blocks:
+        top_matches = [item[1] for item in best_blocks[:2]]
+        joined = "\n\n".join(top_matches)
+        return (
+            "🤖 *[Study Buddy Local Fallback Mode]*\n\n"
+            f"Here is what I found in your study notes regarding your question:\n\n"
+            f"{joined}\n\n"
+            "*(Gemini API is currently rate-limited; displaying matching excerpts from your study materials instead.)*"
+        )
+        
+    return (
+        "🤖 *[Study Buddy Local Fallback Mode]*\n\n"
+        "I'm currently running in offline fallback mode because the Gemini API is rate-limited. "
+        "I couldn't find a direct keyword match in your active study notes. "
+        "Could you try asking about a specific term or concept mentioned in your notes?"
+    )
+
 def chat_with_coach(user_message: str, deck_context: str, chat_history: list) -> str:
     """Chats with the AI study coach, scoped to the active deck context and recent history."""
     if not api_key:
-        return "I am ready to help you study! Set your Gemini API Key to enable AI coaching."
+        return _local_fallback_chat_reply(user_message, deck_context)
 
     system_instruction = (
         f"{SYSTEM_PROMPT_COACH}\n\n"
@@ -547,7 +586,7 @@ def chat_with_coach(user_message: str, deck_context: str, chat_history: list) ->
         return response.text.strip()
     except Exception as e:
         print(f"Error in chat_with_coach: {e}")
-        return "I encountered an error trying to connect to my AI coaching service. Let's try chatting again shortly!"
+        return _local_fallback_chat_reply(user_message, deck_context)
 
 # ----------------- AI PREP COACH & PLANS -----------------
 SYSTEM_PROMPT_PREP_PLAN = (
@@ -695,13 +734,110 @@ SYSTEM_PROMPT_PREP_CHAT = (
     "4. If the user asks something completely unrelated to the preparation topic or goal, politely redirect them back to the topic."
 )
 
+def _local_fallback_prep_chat_reply(user_message: str, goal_context: str) -> str:
+    """Generates a helpful fallback response for the prep coach using local knowledge heuristics."""
+    user_lower = user_message.lower()
+    
+    # 1. Check if user wants a mock question
+    if "question" in user_lower or "quiz" in user_lower or "exercise" in user_lower or "test" in user_lower:
+        goal_lower = goal_context.lower()
+        if "marketing" in goal_lower:
+            question = (
+                "Here is a mock marketing question for you:\n\n"
+                "**Question:** *How would you determine the Customer Acquisition Cost (CAC) for a new digital channel, "
+                "and what metrics would you track to optimize its Customer Lifetime Value (LTV)?*\n\n"
+                "Try drafting an answer, and explain your strategy out loud!"
+            )
+        elif "interview" in goal_lower or "software" in goal_lower or "engineer" in goal_lower or "developer" in goal_lower:
+            question = (
+                "Here is a technical interview practice question:\n\n"
+                "**Question:** *Explain the difference between an INNER JOIN and a LEFT JOIN in SQL. "
+                "In what scenarios would you choose a LEFT JOIN over an INNER JOIN?*\n\n"
+                "Explain your thought process step-by-step!"
+            )
+        else:
+            question = (
+                "Here is a prep question for your goal:\n\n"
+                "**Question:** *What are the 3 most critical concepts/frameworks for this topic, "
+                "and how would you explain them to someone with no background in the field?*\n\n"
+                "Take a moment to formulate your response."
+            )
+        return (
+            "🤖 *[Study Buddy Offline Prep Coach Mode]*\n\n"
+            f"{question}\n\n"
+            "*(Gemini API is currently rate-limited; generating a preset practice question instead.)*"
+        )
+        
+    # 2. General concept queries
+    if "roi" in user_lower:
+        explanation = (
+            "**Marketing Return on Investment (ROI)** measures the profitability of a campaign.\n\n"
+            "**Formula:**\n"
+            "$$\\text{ROI} = \\frac{\\text{Revenue Gain} - \\text{Marketing Cost}}{\\text{Marketing Cost}} \\times 100\\%$$\n\n"
+            "For example, if you spend $100 on ads and get $250 in profit, the ROI is $150\\%$. "
+            "It helps teams identify which campaigns are generating positive returns."
+        )
+    elif "funnel" in user_lower or "conversion" in user_lower:
+        explanation = (
+            "A **Conversion Funnel** is a framework that maps the customer journey from first touchpoint to purchase:\n\n"
+            "1. **Awareness:** Prospect learns about your brand.\n"
+            "2. **Interest / Consideration:** Prospect researches products or services.\n"
+            "3. **Conversion:** Prospect makes a purchase.\n"
+            "4. **Retention:** Customer becomes a repeat buyer.\n\n"
+            "By tracking drop-off rates at each stage, you can optimize copy, user experience, and targeting."
+        )
+    elif "join" in user_lower or "sql" in user_lower:
+        explanation = (
+            "Here is a quick overview of SQL Joins:\n\n"
+            "- **INNER JOIN:** Returns records that have matching values in both tables.\n"
+            "- **LEFT JOIN (or LEFT OUTER JOIN):** Returns all records from the left table, and the matched records from the right table. If no match, NULL is returned.\n"
+            "- **RIGHT JOIN:** Returns all records from the right table, and the matched records from the left table.\n"
+            "- **FULL JOIN:** Returns all records when there is a match in either left or right table."
+        )
+    elif "star" in user_lower or "behavioral" in user_lower:
+        explanation = (
+            "The **STAR Method** is a structured manner of responding to behavioral interview questions:\n\n"
+            "- **Situation:** Set the scene and give necessary context.\n"
+            "- **Task:** Describe what your responsibility was in that situation.\n"
+            "- **Action:** Explain exactly what steps you took to address the challenge.\n"
+            "- **Result:** Share what outcomes your actions achieved (quantify where possible!)."
+        )
+    else:
+        # Fallback to search goal context text
+        blocks = [b.strip() for b in goal_context.split('\n') if b.strip()]
+        words = [w for w in user_lower.split() if len(w) > 3]
+        best_blocks = []
+        for block in blocks:
+            block_lower = block.lower()
+            score = sum(1 for w in words if w in block_lower)
+            if score > 0:
+                best_blocks.append((score, block))
+        best_blocks.sort(key=lambda x: x[0], reverse=True)
+        if best_blocks:
+            matches_str = "\n".join([f"- {item[1]}" for item in best_blocks[:3]])
+            explanation = (
+                f"I found the following topics in your preparation plan context:\n\n"
+                f"{matches_str}"
+            )
+        else:
+            explanation = (
+                "I am ready to help you prepare for your goal! Ask me to explain a concept, "
+                "give you mock questions, or clarify your scheduled daily plan."
+            )
+            
+    return (
+        "🤖 *[Study Buddy Offline Prep Coach Mode]*\n\n"
+        f"{explanation}\n\n"
+        "*(Gemini API is currently rate-limited; answering using local prep knowledge heuristics instead.)*"
+    )
+
 def prep_chat(user_message: str, goal_context: str, chat_history: list) -> str:
     """
     Chats with the AI preparation coach, scoped to the preparation goal/plan context and recent history.
     Can answer general questions about the goal from its own knowledge.
     """
     if not api_key:
-        return "I am ready to help you prepare! Set your Gemini API Key to enable AI coaching."
+        return _local_fallback_prep_chat_reply(user_message, goal_context)
 
     system_instruction = (
         f"{SYSTEM_PROMPT_PREP_CHAT}\n\n"
@@ -731,4 +867,4 @@ def prep_chat(user_message: str, goal_context: str, chat_history: list) -> str:
         return response.text.strip()
     except Exception as e:
         print(f"Error in prep_chat: {e}")
-        return "I encountered an error trying to connect to my AI preparation coaching service. Let's try again shortly!"
+        return _local_fallback_prep_chat_reply(user_message, goal_context)
