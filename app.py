@@ -317,6 +317,7 @@ main_pages = [
     "🏠 Home",
     "📝 Upload & Study",
     "💬 Study Coach",
+    "📋 Prep Planner",
     "📈 Progress Dashboard",
     "🗂️ My Decks",
     "📚 Revision Sheets",
@@ -328,7 +329,7 @@ else:
     if st.session_state.current_page.startswith("Feature:"):
         sidebar_index = 0
     else:
-        sidebar_index = 3
+        sidebar_index = 4
 
 with st.sidebar:
     # App Logo Icon and Title
@@ -2056,6 +2057,151 @@ elif page == "🏆 Achievements":
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+# ----------------- PAGE: Prep Planner -----------------
+elif page == "📋 Prep Planner":
+    st.markdown('<div class="main-header">📋 AI Prep Planner</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">Create a customized day-by-day preparation schedule and chat with a specialized prep coach.</div>', unsafe_allow_html=True)
+
+    import json
+    
+    # Check session state keys
+    if "prep_goal" not in st.session_state:
+        st.session_state.prep_goal = ""
+    if "prep_days" not in st.session_state:
+        st.session_state.prep_days = 5
+    if "prep_plan" not in st.session_state:
+        st.session_state.prep_plan = None
+    if "prep_chat_history" not in st.session_state:
+        st.session_state.prep_chat_history = []
+
+    # If no plan exists, show the plan creator form
+    if st.session_state.prep_plan is None:
+        st.markdown("""
+        <div style="background-color: #131b2e; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px;">
+            <h3 style="color: #06b6d4; margin-top: 0;">Plan Your Preparation</h3>
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 0;">Specify your preparation goal and the days you have left to study. The coach will compile a personalized guide for you.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        goal_input = st.text_input(
+            "What are you preparing for?",
+            placeholder="e.g. software engineering interview, chemistry mid-term, PMP certification exam",
+            help="Describe your goal clearly so the coach can research and build a fitting timeline."
+        )
+        days_input = st.number_input("Days available:", min_value=1, max_value=60, value=5)
+        
+        if st.button("Generate My Plan", type="primary"):
+            if not goal_input.strip():
+                st.warning("Please specify what you are preparing for!")
+            else:
+                with st.spinner("AI Coach is compiling your personalized prep plan..."):
+                    try:
+                        plan_res = agent.generate_prep_plan(goal_input, days_input)
+                        st.session_state.prep_plan = plan_res
+                        st.session_state.prep_goal = goal_input
+                        st.session_state.prep_days = days_input
+                        # Pre-seed the chat history
+                        st.session_state.prep_chat_history = [
+                            {"role": "assistant", "content": "Ask me anything about your preparation — I can explain concepts, give practice questions, or clarify your plan"}
+                        ]
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to generate prep plan: {e}")
+    else:
+        # Plan exists! Display it
+        col_header, col_action = st.columns([7, 3])
+        with col_header:
+            st.markdown(f"### 🎯 Prep Plan: {st.session_state.prep_goal} ({st.session_state.prep_days} Days)")
+        with col_action:
+            if st.button("Start New Prep 🔄", use_container_width=True):
+                st.session_state.prep_plan = None
+                st.session_state.prep_goal = ""
+                st.session_state.prep_days = 5
+                st.session_state.prep_chat_history = []
+                st.rerun()
+                
+        # Main plan presentation split: Left (Checklist and Tips), Right (Daily Schedule)
+        col_plan_l, col_plan_r = st.columns([1, 1])
+        
+        with col_plan_l:
+            st.markdown("### 📋 Focus Topics")
+            st.write("Priority checklist of concepts to cover:")
+            topics = st.session_state.prep_plan.get("topic_breakdown", [])
+            for t in topics:
+                st.checkbox(t, key=f"prep_check_{t}")
+                
+            st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+            
+            st.markdown("### 💡 Strategic Coach Tips")
+            tips = st.session_state.prep_plan.get("key_tips", [])
+            tips_html = "".join([f"<li style='margin-bottom: 8px; color: #f1f5f9;'>{tip}</li>" for tip in tips])
+            st.markdown(f"""
+            <div style="background-color: #0f172a; border-left: 4px solid #06b6d4; padding: 15px; border-radius: 4px; border: 1px solid #1e293b;">
+                <ul style="margin: 0; padding-left: 20px;">
+                    {tips_html}
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_plan_r:
+            st.markdown("### 📅 Daily Schedule")
+            daily_plan = st.session_state.prep_plan.get("daily_plan", [])
+            for day_item in daily_plan:
+                day_num = day_item.get("day", 1)
+                title = day_item.get("title", f"Day {day_num}")
+                focus_items = day_item.get("focus_items", [])
+                
+                with st.expander(f"Day {day_num}: {title}", expanded=(day_num == 1)):
+                    for item in focus_items:
+                        st.write(f"- {item}")
+
+        st.markdown("---")
+        st.subheader("💬 Chat with your Prep Coach")
+        st.write("Ask questions about concepts, request quiz questions, or discuss your plan.")
+        
+        # Clear chat button
+        col_spacer, col_clear = st.columns([8, 2])
+        with col_clear:
+            if st.button("Clear Chat 🗑️", key="clear_prep_chat", use_container_width=True):
+                st.session_state.prep_chat_history = [
+                    {"role": "assistant", "content": "Ask me anything about your preparation — I can explain concepts, give practice questions, or clarify your plan"}
+                ]
+                st.rerun()
+
+        # Display conversation history
+        for msg in st.session_state.prep_chat_history:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                
+        # Check if last message is from user (triggers prep_chat API call)
+        if st.session_state.prep_chat_history[-1]["role"] == "user":
+            user_msg_text = st.session_state.prep_chat_history[-1]["content"]
+            with st.chat_message("assistant"):
+                with st.spinner("Prep coach is compiling guidance..."):
+                    # Pass the plan JSON as the goal context string
+                    goal_context_str = (
+                        f"Goal: {st.session_state.prep_goal}\n"
+                        f"Days: {st.session_state.prep_days}\n"
+                        f"Plan: {json.dumps(st.session_state.prep_plan)}"
+                    )
+                    try:
+                        coach_reply = agent.prep_chat(
+                            user_message=user_msg_text,
+                            goal_context=goal_context_str,
+                            chat_history=st.session_state.prep_chat_history[:-1]
+                        )
+                    except Exception as e:
+                        coach_reply = f"Sorry, I had trouble thinking of a response: {e}"
+                st.markdown(coach_reply)
+            st.session_state.prep_chat_history.append({"role": "assistant", "content": coach_reply})
+            st.rerun()
+
+        # Chat input for user message
+        user_input = st.chat_input("Ask your prep coach a question...")
+        if user_input:
+            st.session_state.prep_chat_history.append({"role": "user", "content": user_input})
+            st.rerun()
 
 # ----------------- PAGE: Study Coach -----------------
 elif page == "💬 Study Coach":
