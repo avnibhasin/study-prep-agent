@@ -682,3 +682,53 @@ def generate_prep_plan(goal_description: str, days_available: int) -> dict:
                 
     print("[INFO] Using local fallback prep plan generation.")
     return _fallback_prep_plan(goal_description, days_available)
+
+# ----------------- AI PREP PLAN CHAT -----------------
+SYSTEM_PROMPT_PREP_CHAT = (
+    "You are a helpful, encouraging, and highly structured study preparation coach. "
+    "Your task is to help the user prepare for their specified goal by explaining key concepts, "
+    "providing mock questions/exercises, and giving strategic guidance from your own extensive knowledge base.\n"
+    "Rules:\n"
+    "1. Help the user prepare for their goal, explain concepts, give mock questions, or explain how to answer questions.\n"
+    "2. You are NOT restricted to any uploaded files or material; use your own general knowledge of the subject.\n"
+    "3. Keep your answers structured, encouraging, clear, and educational.\n"
+    "4. If the user asks something completely unrelated to the preparation topic or goal, politely redirect them back to the topic."
+)
+
+def prep_chat(user_message: str, goal_context: str, chat_history: list) -> str:
+    """
+    Chats with the AI preparation coach, scoped to the preparation goal/plan context and recent history.
+    Can answer general questions about the goal from its own knowledge.
+    """
+    if not api_key:
+        return "I am ready to help you prepare! Set your Gemini API Key to enable AI coaching."
+
+    system_instruction = (
+        f"{SYSTEM_PROMPT_PREP_CHAT}\n\n"
+        "Here is the user's current preparation goal and plan context:\n"
+        f"--- GOAL & PLAN CONTEXT ---\n{goal_context}\n---------------------------"
+    )
+    
+    history_str = ""
+    # Keep last 10 messages for memory within the session
+    recent_history = chat_history[-10:] if chat_history else []
+    for msg in recent_history:
+        role = "User" if msg["role"] == "user" else "Coach"
+        history_str += f"{role}: {msg['content']}\n"
+        
+    prompt = f"{history_str}User: {user_message}\nCoach:"
+    
+    model = genai.GenerativeModel(
+        model_name='gemini-2.0-flash',
+        system_instruction=system_instruction
+    )
+    
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.7}
+        )
+        return response.text.strip()
+    except Exception as e:
+        print(f"Error in prep_chat: {e}")
+        return "I encountered an error trying to connect to my AI preparation coaching service. Let's try again shortly!"
