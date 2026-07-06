@@ -10,7 +10,7 @@ import agent
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="Study Prep Agent",
+    page_title="Study Buddy",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -337,7 +337,7 @@ with st.sidebar:
     with col_logo:
         st.image("study_agent_logo.png", use_container_width=True)
     with col_title:
-        st.markdown('<div class="sidebar-title" style="margin-top: 10px;">Study Prep Agent</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-title" style="margin-top: 10px;">Study Buddy</div>', unsafe_allow_html=True)
         
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
@@ -428,9 +428,9 @@ if page == "🏠 Home":
     with col_hero_left:
         st.markdown("""
         <div style="padding-top: 10px; padding-bottom: 10px;">
-            <h1 class="main-header" style="font-size: 3.4rem; line-height: 1.1; margin-bottom: 15px; text-align: left;">Study Prep Agent</h1>
+            <h1 class="main-header" style="font-size: 3.4rem; line-height: 1.1; margin-bottom: 15px; text-align: left;">Study Buddy</h1>
             <div class="hero-tagline" style="font-size: 1.25rem; color: #38bdf8; font-weight: 600; margin-bottom: 20px; text-align: left;">
-                "The study buddy that remembers what you don't know"
+                "The active recall companion that remembers what you don't know"
             </div>
             <p style="color: #cbd5e1; font-size: 1.02rem; line-height: 1.65; margin-bottom: 35px; text-align: left;">
                 An intelligent, adaptive exam preparation assistant designed to optimize your learning. 
@@ -505,7 +505,7 @@ if page == "🏠 Home":
         <div style="background-color: #0e1320; padding: 25px; border-radius: 12px; border: 1px solid #1e293b; height: 100%;">
             <h4 style="color: #06b6d4; margin-top:0; font-weight:700;">🧠 Adaptive Learning Loop</h4>
             <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;">
-                Study Prep Agent is powered by an active recall methodology. Instead of passive reading, the system forces 
+                Study Buddy is powered by an active recall methodology. Instead of passive reading, the system forces 
                 your brain to retrieve information through dynamic quizzes. Performance logs are tracked using an integrated 
                 SQLite schema, feeding an adaptive algorithm that automatically weights weaker topics in subsequent practice sets.
             </p>

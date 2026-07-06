@@ -1,4 +1,4 @@
-# Study Prep Agent 🎓
+# Study Buddy 🎓
 
 An intelligent, adaptive exam preparation assistant designed to optimize your learning. Simply upload or paste your study materials, and let the generative AI model construct customized multiple-choice and short-answer practice sessions, giving you instant conceptual explanations while tracking your progress to automatically reinforce your weaker areas.
 
@@ -48,7 +48,7 @@ An intelligent, adaptive exam preparation assistant designed to optimize your le
 1. Clone this repository to your local machine:
    ```bash
    git clone <your-repository-url>
-   cd study-prep-agent
+   cd study-buddy
    ```
 
 2. Install the required dependencies:
